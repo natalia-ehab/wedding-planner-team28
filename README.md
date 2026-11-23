@@ -26,3 +26,8 @@ Project ownership and responsibilities are managed through the CODEOWNERS file.
 To be completed later.
 
 5. How to Deploy
+
+### 6. Branching and Pull Request Rules
+
+- Each team member must work on their own branch.
+- Direct pushes to the main branch are not allowed.
