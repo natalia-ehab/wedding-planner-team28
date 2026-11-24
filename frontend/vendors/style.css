@@ -1,0 +1,206 @@
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #faf7f4;
+    color: #333;
+}
+
+/* Header */
+
+header {
+    background-color: #98675d;
+    color: white;
+    text-align: center;
+    padding: 25px;
+}
+
+header h1 {
+    margin: 0;
+}
+
+header p {
+    margin-bottom: 0;
+}
+
+/* Main Container */
+
+.container {
+    max-width: 1100px;
+    margin: 25px auto;
+    padding: 0 20px;
+}
+
+/* Sections */
+
+.card {
+    background-color: white;
+    padding: 25px;
+    margin-bottom: 20px;
+    border: 1px solid #e5d8d1;
+    border-radius: 8px;
+}
+
+h2 {
+    color: #634842;
+    margin-top: 0;
+}
+
+/* Forms */
+
+form {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+label {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+input,
+select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+input:focus,
+select:focus {
+    outline: 2px solid #98675d;
+}
+
+/* Buttons */
+
+button {
+    background-color: #98675d;
+    color: white;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+button:hover {
+    background-color: #80554d;
+}
+
+/* Budget Summary */
+
+.budget-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.budget-summary div {
+    background-color: #faf7f4;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.budget-summary h3 {
+    font-size: 14px;
+    color: #634842;
+}
+
+.budget-summary p {
+    font-size: 22px;
+    font-weight: bold;
+}
+
+/* Budget Progress */
+
+progress {
+    width: 100%;
+    height: 20px;
+    accent-color: #98675d;
+    margin-top: 10px;
+}
+
+/* Tables */
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+th,
+td {
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+}
+
+th {
+    background-color: #f4eeea;
+    color: #634842;
+}
+
+td button {
+    margin: 3px;
+}
+
+/* Feedback Messages */
+
+.success {
+    color: #15803d;
+}
+
+.error {
+    color: #b91c1c;
+}
+
+.warning {
+    color: #b7791f;
+}
+
+/* Payment Status */
+
+.pending {
+    color: #b7791f;
+}
+
+.paid {
+    color: #2563eb;
+}
+
+.confirmed {
+    color: #15803d;
+}
+
+.overdue {
+    color: #b91c1c;
+}
+
+/* Responsive Design */
+
+@media (max-width: 760px) {
+
+    .budget-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .container {
+        padding: 0 10px;
+    }
+
+    .card {
+        padding: 15px;
+    }
+}

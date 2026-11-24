@@ -1,0 +1,179 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wedding Planner - Vendor and Budget</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header>
+        <h1>Wedding Planner</h1>
+        <p>Vendor and Budget Management</p>
+    </header>
+
+    <main class="container">
+
+        <!-- Budget Management -->
+        <section class="card">
+            <h2>Budget Overview</h2>
+
+            <form id="budget-form">
+                <label for="total-budget">Total Budget (EGP)</label>
+                <input type="number" id="total-budget"
+                       min="0.01" step="0.01" required>
+                <button type="submit">Set Budget</button>
+            </form>
+
+            <div class="budget-summary">
+                <div>
+                    <h3>Total Budget</h3>
+                    <p id="budget-total">—</p>
+                </div>
+
+                <div>
+                    <h3>Committed</h3>
+                    <p id="budget-committed">—</p>
+                </div>
+
+                <div>
+                    <h3>Paid</h3>
+                    <p id="budget-paid">—</p>
+                </div>
+
+                <div>
+                    <h3>Remaining</h3>
+                    <p id="budget-remaining">—</p>
+                </div>
+            </div>
+
+            <label for="budget-progress">Budget Usage</label>
+            <progress id="budget-progress" value="0" max="100"></progress>
+
+            <p id="budget-percentage">—</p>
+            <p id="budget-warning" role="status"></p>
+        </section>
+
+        <!-- Vendor Management -->
+        <section class="card">
+            <h2>Vendor Management</h2>
+
+            <form id="vendor-form">
+
+                <label for="vendor-name">Vendor Name</label>
+                <input type="text" id="vendor-name"
+                       maxlength="150" required>
+
+                <label for="service-type">Service Type</label>
+                <select id="service-type" required>
+                    <option value="">Select Service</option>
+                    <option value="Venue">Venue</option>
+                    <option value="Catering">Catering</option>
+                    <option value="Photography">Photography</option>
+                    <option value="Decoration">Decoration</option>
+                    <option value="Music">Music</option>
+                    <option value="Other">Other</option>
+                </select>
+
+                <label for="vendor-email">Email</label>
+                <input type="email" id="vendor-email"
+                       maxlength="255" required>
+
+                <label for="vendor-phone">Phone Number</label>
+                <input type="tel" id="vendor-phone" maxlength="20">
+
+                <label for="contract-total">Contract Total (EGP)</label>
+                <input type="number" id="contract-total"
+                       min="0.01" step="0.01" required>
+
+                <button type="submit">Add Vendor</button>
+
+            </form>
+
+            <p id="vendor-message" role="status"></p>
+
+            <label for="vendor-search">Search Vendors</label>
+            <input type="search" id="vendor-search"
+                   placeholder="Search by service type">
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Vendor Name</th>
+                            <th>Service Type</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Contract Total</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="vendor-list"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Payment Management -->
+        <section class="card">
+            <h2>Payment Scheduling and Tracking</h2>
+
+            <form id="payment-form">
+
+                <label for="payment-vendor">Vendor</label>
+                <select id="payment-vendor" required>
+                    <option value="">Select Vendor</option>
+                </select>
+
+                <label for="payment-amount">Payment Amount (EGP)</label>
+                <input type="number" id="payment-amount"
+                       min="0.01" step="0.01" required>
+
+                <label for="due-date">Due Date</label>
+                <input type="date" id="due-date" required>
+
+                <button type="submit">Schedule Payment</button>
+
+            </form>
+
+            <p id="payment-message" role="status"></p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Vendor</th>
+                            <th>Amount</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="payment-list"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Guest Service Integration -->
+        <section class="card">
+            <h2>Final Guest Count</h2>
+
+            <p>Confirmed Guests: <span id="guest-count">—</span></p>
+
+            <button type="button" id="refresh-guests">
+                Get Guest Count
+            </button>
+
+            <p id="guest-message" role="status"></p>
+        </section>
+
+    </main>
+
+    <script src="app.js"></script>
+
+</body>
+</html>
