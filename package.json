@@ -1,0 +1,29 @@
+{
+  "name": "wedding-planner-team28",
+  "version": "1.0.0",
+  "description": "A web-based wedding planning platform designed to help users organize and manage wedding-related tasks and services.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/natalia-ehab/wedding-planner-team28.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/natalia-ehab/wedding-planner-team28/issues"
+  },
+  "homepage": "https://github.com/natalia-ehab/wedding-planner-team28#readme",
+  "dependencies": {
+    "dotenv": "^18.0.10",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.23.1"
+  }
+}
