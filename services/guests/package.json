@@ -1,0 +1,23 @@
+{
+  "name": "guests",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "zip": "node scripts/zip-lambda.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1177.0",
+    "@aws-sdk/lib-dynamodb": "^3.1177.0",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "serverless-http": "^4.0.0"
+  }
+}

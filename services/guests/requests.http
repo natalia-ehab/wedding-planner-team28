@@ -1,0 +1,110 @@
+
+
+### 1. Create a new guest
+POST http://localhost:3001/api/guests
+Content-Type: application/json
+
+{
+    "weddingId": "WED-101",
+    "name": "Rawan Mahmoud",
+    "email": "Rawan@gmail.com",
+    "phone": "01012345678"
+}
+
+### 2. Get all guests
+GET http://localhost:3001/api/guests?weddingId=WED-101
+### 3. Search guests
+GET http://localhost:3001/api/guests/search?weddingId=WED-101&search=Rawan
+
+### 4. Update guest
+PATCH http://localhost:3001/api/guests/e55a77c0-e3d6-41f7-b8b3-182f3aa4b93f
+Content-Type: application/json
+
+{
+    "name": "Rawan Mahmoud Updated"
+}
+
+### 5. Delete guest
+DELETE http://localhost:3001/api/guests/e55a77c0-e3d6-41f7-b8b3-182f3aa4b93f
+
+### Submit RSVP - Confirmed
+PATCH http://localhost:3001/api/guests/invitations/a016db2f-fc6b-43e8-af30-ccbd726e4752
+Content-Type: application/json
+
+{
+  "rsvpStatus": "Confirmed"
+}
+
+### Test Invalid RSVP Status
+PATCH http://localhost:3001/api/guests/invitations/a016db2f-fc6b-43e8-af30-ccbd726e4752
+Content-Type: application/json
+
+{
+  "rsvpStatus": "Maybe"
+}
+
+### Test Invalid Invitation Token
+PATCH http://localhost:3001/api/guests/invitations/invalid-token-123
+Content-Type: application/json
+
+{
+  "rsvpStatus": "Confirmed"
+}
+
+### Test Duplicate Email
+POST http://localhost:3001/api/guests
+Content-Type: application/json
+
+{
+    "weddingId": "WED-101",
+    "name": "Test Guest",
+    "email": "Rawan@gmail.com",
+    "phone": "01012345678"
+}
+
+### Test Missing Required Fields
+POST http://localhost:3001/api/guests
+Content-Type: application/json
+
+{
+    "weddingId": "WED-101",
+    "email": "test@gmail.com"
+}
+
+### Test RSVP Tracking
+GET http://localhost:3001/api/guests?weddingId=WED-101&rsvpDeadline=2026-12-31T23:59:59
+
+### Test Overdue Guests
+GET http://localhost:3001/api/guests?weddingId=WED-101&rsvpDeadline=2026-01-01T23:59:59
+### Test Invalid Guest ID
+PATCH http://localhost:3001/api/guests/invalid-id
+Content-Type: application/json
+
+{
+    "name": "Updated Name"
+}
+
+### Test Invalid Wedding ID
+GET http://localhost:3001/api/guests?weddingId=INVALID-WED
+
+### Test Unsupported Content Type
+PATCH http://localhost:3001/api/guests/50f29c39-f8eb-4b45-8062-e0b358e2473d
+Content-Type: text/plain
+
+Invalid Data
+
+### Test Invalid Guest Data Type
+PATCH http://localhost:3001/api/guests/50f29c39-f8eb-4b45-8062-e0b358e2473d
+Content-Type: application/json
+
+{
+    "name": 123
+}
+
+### Test Missing RSVP Deadline
+PATCH http://localhost:3001/api/guests/invitations/a016db2f-fc6b-43e8-af30-ccbd726e4752
+Content-Type: application/json
+
+{
+    "rsvpStatus": "Confirmed"
+}

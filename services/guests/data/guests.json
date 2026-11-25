@@ -1,0 +1,22 @@
+[
+  {
+    "guestId": "50f29c39-f8eb-4b45-8062-e0b358e2473d",
+    "weddingId": "WED-101",
+    "name": "Sara Ahmed",
+    "email": "sara@gmail.com",
+    "phone": "01012345678",
+    "invitationToken": "b9944afb-ba29-4768-b4cd-e5bdfe39cb2e",
+    "rsvpStatus": "Pending",
+    "responseDate": null
+  },
+  {
+    "guestId": "e55a77c0-e3d6-41f7-b8b3-182f3aa4b93f",
+    "weddingId": "WED-101",
+    "name": "Rawan Mahmoud",
+    "email": "Rawan@gmail.com",
+    "phone": "01012345678",
+    "invitationToken": "a016db2f-fc6b-43e8-af30-ccbd726e4752",
+    "rsvpStatus": "Confirmed",
+    "responseDate": "2026-11-24T21:30:08.479Z"
+  }
+]
