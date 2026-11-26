@@ -1,0 +1,14 @@
+{
+    "httpMethod": "GET",
+    "path": "/health",
+    "headers": {
+        "Content-Type": "application/json"
+    },
+    "requestContext": {
+        "identity": {
+            "sourceIp": "127.0.0.1"
+        }
+    },
+    "body": null,
+    "isBase64Encoded": false
+}

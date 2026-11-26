@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3003/api';
+const API_BASE_URL = 'http://localhost:4566/restapis/8d702ed4f6/dev/_user_request_/api';
 
 async function apiRequest(endpoint, method = 'GET', data = null) {
     const options = {

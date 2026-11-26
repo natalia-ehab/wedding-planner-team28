@@ -60,7 +60,7 @@ app.use((error, req, res, next) => {
     });
 });
 
-// Start Server
+// Start Local Server
 const PORT = process.env.PORT || 3003;
 
 async function startServer() {
@@ -85,4 +85,10 @@ async function startServer() {
     }
 }
 
-startServer();
+// Run only during local development
+if (require.main === module) {
+    startServer();
+}
+
+// Export Express app for AWS Lambda
+module.exports = app;
