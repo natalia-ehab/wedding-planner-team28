@@ -1,0 +1,55 @@
+{
+    "vendors": [
+        {
+            "vendor_id": 1,
+            "wedding_id": 1,
+            "vendor_name": "Dream Photography",
+            "service_type": "Photography",
+            "vendor_email": "dream@example.com",
+            "vendor_phone_number": "01012345678",
+            "contract_total": 20000
+        },
+        {
+            "vendor_id": 4,
+            "wedding_id": 1,
+            "vendor_name": "Dream Catering",
+            "service_type": "Catering",
+            "vendor_email": "catering@example.com",
+            "vendor_phone_number": "01012345678",
+            "contract_total": 30000
+        }
+    ],
+    "budgets": [
+        {
+            "budget_id": 1,
+            "wedding_id": 1,
+            "total_amount": 150000
+        }
+    ],
+    "payments": [
+        {
+            "payment_id": 1,
+            "vendor_id": 1,
+            "payment_amount": 5000,
+            "payment_due_date": "2027-11-01",
+            "payment_status": "Confirmed"
+        },
+        {
+            "payment_id": 2,
+            "vendor_id": 1,
+            "payment_amount": 15000,
+            "payment_due_date": "2025-01-01",
+            "payment_status": "Paid"
+        },
+        {
+            "payment_id": 3,
+            "vendor_id": 4,
+            "payment_amount": 10000,
+            "payment_due_date": "2027-12-01",
+            "payment_status": "Pending"
+        }
+    ],
+    "nextVendorId": 5,
+    "nextBudgetId": 2,
+    "nextPaymentId": 4
+}

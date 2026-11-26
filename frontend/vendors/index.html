@@ -1,6 +1,6 @@
-
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,8 +23,7 @@
 
             <form id="budget-form">
                 <label for="total-budget">Total Budget (EGP)</label>
-                <input type="number" id="total-budget"
-                       min="0.01" step="0.01" required>
+                <input type="number" id="total-budget" min="0.01" step="0.01" required>
                 <button type="submit">Set Budget</button>
             </form>
 
@@ -64,8 +63,7 @@
             <form id="vendor-form">
 
                 <label for="vendor-name">Vendor Name</label>
-                <input type="text" id="vendor-name"
-                       maxlength="150" required>
+                <input type="text" id="vendor-name" maxlength="150" required>
 
                 <label for="service-type">Service Type</label>
                 <select id="service-type" required>
@@ -79,15 +77,13 @@
                 </select>
 
                 <label for="vendor-email">Email</label>
-                <input type="email" id="vendor-email"
-                       maxlength="255" required>
+                <input type="email" id="vendor-email" maxlength="255" required>
 
                 <label for="vendor-phone">Phone Number</label>
                 <input type="tel" id="vendor-phone" maxlength="20">
 
                 <label for="contract-total">Contract Total (EGP)</label>
-                <input type="number" id="contract-total"
-                       min="0.01" step="0.01" required>
+                <input type="number" id="contract-total" min="0.01" step="0.01" required>
 
                 <button type="submit">Add Vendor</button>
 
@@ -96,8 +92,7 @@
             <p id="vendor-message" role="status"></p>
 
             <label for="vendor-search">Search Vendors</label>
-            <input type="search" id="vendor-search"
-                   placeholder="Search by service type">
+            <input type="search" id="vendor-search" placeholder="Search by service type">
 
             <div class="table-wrapper">
                 <table>
@@ -129,8 +124,7 @@
                 </select>
 
                 <label for="payment-amount">Payment Amount (EGP)</label>
-                <input type="number" id="payment-amount"
-                       min="0.01" step="0.01" required>
+                <input type="number" id="payment-amount" min="0.01" step="0.01" required>
 
                 <label for="due-date">Due Date</label>
                 <input type="date" id="due-date" required>
@@ -173,7 +167,9 @@
 
     </main>
 
-    <script src="app.js" defer></script>
+    <script src="api.js"></script>
+    <script src="app.js"></script>
 
 </body>
+
 </html>
