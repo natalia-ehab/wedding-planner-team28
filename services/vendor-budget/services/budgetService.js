@@ -1,70 +1,69 @@
-const { readDB, writeDB } = require('../data/store');
+const pool = require('../db');
 
-function getBudgetSummary(weddingId) {
-    const db = readDB();
-
-    const budget = db.budgets.find(
-        b => b.wedding_id === weddingId
+// Get budget summary
+async function getBudgetSummary(weddingId) {
+    const result = await pool.query(
+        `SELECT *
+         FROM budget_remaining
+         WHERE wedding_id = $1`,
+        [weddingId]
     );
 
-    const vendors = db.vendors.filter(
-        v => v.wedding_id === weddingId
-    );
+    if (result.rows.length === 0) {
+        return {
+            total_amount: 0,
+            committed_amount: 0,
+            paid_amount: 0,
+            remaining_amount: 0,
+            usage_percentage: 0,
+            budget_warning: false
+        };
+    }
 
-    const vendorIds = vendors.map(
-        v => v.vendor_id
-    );
-
-    const payments = db.payments.filter(
-        p => vendorIds.includes(p.vendor_id)
-    );
-
-    const totalAmount = budget ? budget.total_amount : 0;
-
-    const committedAmount = vendors.reduce(
-        (sum, vendor) => sum + vendor.contract_total,
-        0
-    );
-
-    const paidAmount = payments
-        .filter(payment =>
-            payment.payment_status === 'Paid' ||
-            payment.payment_status === 'Confirmed'
-        )
-        .reduce(
-            (sum, payment) => sum + payment.payment_amount,
-            0
-        );
-
-    const remainingAmount = totalAmount - committedAmount;
-
-    const usagePercentage = totalAmount > 0
-        ? (committedAmount / totalAmount) * 100
-        : 0;
+    const summary = result.rows[0];
 
     return {
-        total_amount: totalAmount,
-        committed_amount: committedAmount,
-        paid_amount: paidAmount,
-        remaining_amount: remainingAmount,
-        usage_percentage: usagePercentage,
-        budget_warning: usagePercentage >= 80
+        total_amount: Number(summary.total_amount),
+        committed_amount: Number(summary.committed_amount),
+        paid_amount: Number(summary.paid_amount),
+        remaining_amount: Number(summary.remaining_amount),
+        usage_percentage: Number(summary.usage_percentage),
+        budget_warning: summary.budget_warning
     };
 }
 
-function getBudget(weddingId) {
-    const db = readDB();
+// Get wedding budget
+async function getBudget(weddingId) {
+    const result = await pool.query(
+        `SELECT *
+         FROM budget
+         WHERE wedding_id = $1`,
+        [weddingId]
+    );
 
-    return db.budgets.find(
-        b => b.wedding_id === weddingId
-    ) || null;
+    if (result.rows.length === 0) {
+        return null;
+    }
+
+    const budget = result.rows[0];
+
+    return {
+        ...budget,
+        total_amount: Number(budget.total_amount)
+    };
 }
 
-function setBudget(weddingId, totalAmount) {
+// Create or update wedding budget
+async function setBudget(weddingId, totalAmount) {
     if (
         typeof totalAmount !== 'number' ||
         !Number.isFinite(totalAmount) ||
-        totalAmount <= 0
+        totalAmount <= 0 ||
+        totalAmount > 9999999999.99 ||
+        Math.abs(
+            totalAmount * 100 -
+            Math.round(totalAmount * 100)
+        ) > 0.0001
     ) {
         throw Object.assign(
             new Error('Enter a valid budget amount.'),
@@ -72,46 +71,84 @@ function setBudget(weddingId, totalAmount) {
         );
     }
 
-    const db = readDB();
+    const client = await pool.connect();
 
-    const committedAmount = db.vendors
-        .filter(v => v.wedding_id === weddingId)
-        .reduce(
-            (sum, vendor) => sum + vendor.contract_total,
-            0
+    try {
+        await client.query('BEGIN');
+
+        // Lock wedding during budget update
+        const weddingResult = await client.query(
+            `SELECT wedding_id
+             FROM wedding
+             WHERE wedding_id = $1
+             FOR UPDATE`,
+            [weddingId]
         );
 
-    if (
-        Math.round(totalAmount * 100) <
-        Math.round(committedAmount * 100)
-    ) {
-        throw Object.assign(
-            new Error(
-                'Budget cannot be less than committed contracts.'
-            ),
-            { status: 409 }
+        if (weddingResult.rows.length === 0) {
+            throw Object.assign(
+                new Error('Wedding not found.'),
+                { status: 404 }
+            );
+        }
+
+        // Calculate committed contracts
+        const committedResult = await client.query(
+            `SELECT COALESCE(
+                SUM(contract_total), 0
+             ) AS committed_amount
+             FROM vendor
+             WHERE wedding_id = $1`,
+            [weddingId]
         );
-    }
 
-    let budget = db.budgets.find(
-        b => b.wedding_id === weddingId
-    );
+        const committedAmount = Number(
+            committedResult.rows[0].committed_amount
+        );
 
-    if (budget) {
-        budget.total_amount = totalAmount;
-    } else {
-        budget = {
-            budget_id: db.nextBudgetId++,
-            wedding_id: weddingId,
-            total_amount: totalAmount
+        // Business validation
+        if (
+            Math.round(totalAmount * 100) <
+            Math.round(committedAmount * 100)
+        ) {
+            throw Object.assign(
+                new Error(
+                    'Budget cannot be less than committed contracts.'
+                ),
+                { status: 409 }
+            );
+        }
+
+        // Insert or update budget
+        const result = await client.query(
+            `INSERT INTO budget (
+                wedding_id,
+                total_amount
+             )
+             VALUES ($1, $2)
+             ON CONFLICT (wedding_id)
+             DO UPDATE SET
+                total_amount = EXCLUDED.total_amount
+             RETURNING *`,
+            [weddingId, totalAmount]
+        );
+
+        await client.query('COMMIT');
+
+        return {
+            ...result.rows[0],
+            total_amount: Number(
+                result.rows[0].total_amount
+            )
         };
 
-        db.budgets.push(budget);
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+
+    } finally {
+        client.release();
     }
-
-    writeDB(db);
-
-    return budget;
 }
 
 module.exports = {

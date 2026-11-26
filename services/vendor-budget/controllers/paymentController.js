@@ -1,44 +1,54 @@
 const paymentService = require('../services/paymentService');
 
-const getPayments = (req, res, next) => {
+const getPayments = async (req, res, next) => {
     try {
-        res.json(paymentService.getPayments(1));
+        const payments = await paymentService.getPayments(1);
+
+        res.json(payments);
+
     } catch (error) {
         next(error);
     }
 };
 
-const getPaymentById = (req, res, next) => {
+const getPaymentById = async (req, res, next) => {
     try {
-        res.json(
-            paymentService.getPaymentById(
-                1, Number(req.params.id)
-            )
+        const payment = await paymentService.getPaymentById(
+            1,
+            Number(req.params.id)
         );
+
+        res.json(payment);
+
     } catch (error) {
         next(error);
     }
 };
 
-const schedulePayment = (req, res, next) => {
+const schedulePayment = async (req, res, next) => {
     try {
-        res.status(201).json(
-            paymentService.schedulePayment(1, req.body)
+        const payment = await paymentService.schedulePayment(
+            1,
+            req.body
         );
+
+        res.status(201).json(payment);
+
     } catch (error) {
         next(error);
     }
 };
 
-const updatePaymentStatus = (req, res, next) => {
+const updatePaymentStatus = async (req, res, next) => {
     try {
-        res.json(
-            paymentService.updatePaymentStatus(
-                1,
-                Number(req.params.id),
-                req.body.payment_status
-            )
+        const payment = await paymentService.updatePaymentStatus(
+            1,
+            Number(req.params.id),
+            req.body.payment_status
         );
+
+        res.json(payment);
+
     } catch (error) {
         next(error);
     }

@@ -1,53 +1,71 @@
 const vendorService = require('../services/vendorService');
 
-const getVendors = (req, res, next) => {
+const getVendors = async (req, res, next) => {
     try {
-        const vendors = vendorService.getVendors(
+        const vendors = await vendorService.getVendors(
             1,
             req.query.service_type
         );
+
         res.json(vendors);
+
     } catch (error) {
         next(error);
     }
 };
 
-const getVendorById = (req, res, next) => {
+const getVendorById = async (req, res, next) => {
     try {
-        res.json(
-            vendorService.getVendorById(1, Number(req.params.id))
+        const vendor = await vendorService.getVendorById(
+            1,
+            Number(req.params.id)
         );
+
+        res.json(vendor);
+
     } catch (error) {
         next(error);
     }
 };
 
-const createVendor = (req, res, next) => {
+const createVendor = async (req, res, next) => {
     try {
-        res.status(201).json(
-            vendorService.createVendor(1, req.body)
+        const vendor = await vendorService.createVendor(
+            1,
+            req.body
         );
+
+        res.status(201).json(vendor);
+
     } catch (error) {
         next(error);
     }
 };
 
-const updateVendor = (req, res, next) => {
+const updateVendor = async (req, res, next) => {
     try {
-        res.json(
-            vendorService.updateVendor(
-                1, Number(req.params.id), req.body
-            )
+        const vendor = await vendorService.updateVendor(
+            1,
+            Number(req.params.id),
+            req.body
         );
+
+        res.json(vendor);
+
     } catch (error) {
         next(error);
     }
 };
 
-const deleteVendor = (req, res, next) => {
+const deleteVendor = async (req, res, next) => {
     try {
-        vendorService.deleteVendor(1, Number(req.params.id));
+        await vendorService.deleteVendor(
+            1,
+            Number(req.params.id)
+        );
+
         res.status(204).send();
+
     } catch (error) {
         next(error);
     }

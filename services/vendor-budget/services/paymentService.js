@@ -1,52 +1,88 @@
-const { readDB, writeDB } = require('../data/store');
-function getPayments(weddingId) {
-    const db = readDB();
+const pool = require('../db');
 
-    const vendorIds = db.vendors
-        .filter(v => v.wedding_id === weddingId)
-        .map(v => v.vendor_id);
-
-    return db.payments.filter(
-        p => vendorIds.includes(p.vendor_id)
-    );
+// Format PostgreSQL payment values
+function formatPayment(payment) {
+    return {
+        ...payment,
+        payment_amount: Number(payment.payment_amount)
+    };
 }
 
-function getPaymentById(weddingId, paymentId) {
-    const payments = getPayments(weddingId);
-
-    const payment = payments.find(
-        p => p.payment_id === paymentId
+// Get all payments for a wedding
+async function getPayments(weddingId) {
+    const result = await pool.query(
+        `SELECT
+            p.payment_id,
+            p.vendor_id,
+            p.payment_amount,
+            p.payment_due_date::text AS payment_due_date,
+            p.payment_status
+         FROM payment p
+         JOIN vendor v
+            ON p.vendor_id = v.vendor_id
+         WHERE v.wedding_id = $1
+         ORDER BY p.payment_id`,
+        [weddingId]
     );
 
-    if (!payment) {
+    return result.rows.map(formatPayment);
+}
+
+// Get a specific payment
+async function getPaymentById(weddingId, paymentId) {
+    const result = await pool.query(
+        `SELECT
+            p.payment_id,
+            p.vendor_id,
+            p.payment_amount,
+            p.payment_due_date::text AS payment_due_date,
+            p.payment_status
+         FROM payment p
+         JOIN vendor v
+            ON p.vendor_id = v.vendor_id
+         WHERE v.wedding_id = $1
+         AND p.payment_id = $2`,
+        [weddingId, paymentId]
+    );
+
+    if (result.rows.length === 0) {
         throw Object.assign(
             new Error('Payment not found.'),
             { status: 404 }
         );
     }
 
-    return payment;
+    return formatPayment(result.rows[0]);
 }
 
-function schedulePayment(weddingId, data) {
-    const db = readDB();
+// Lock wedding during payment operations
+async function lockWedding(client, weddingId) {
+    const result = await client.query(
+        `SELECT wedding_id
+         FROM wedding
+         WHERE wedding_id = $1
+         FOR UPDATE`,
+        [weddingId]
+    );
 
-    if (!data || !Number.isInteger(data.vendor_id)) {
+    if (result.rows.length === 0) {
+        throw Object.assign(
+            new Error('Wedding not found.'),
+            { status: 404 }
+        );
+    }
+}
+
+// Schedule a new payment
+async function schedulePayment(weddingId, data) {
+    if (
+        !data ||
+        !Number.isInteger(data.vendor_id) ||
+        data.vendor_id <= 0
+    ) {
         throw Object.assign(
             new Error('Invalid vendor ID.'),
             { status: 400 }
-        );
-    }
-
-    const vendor = db.vendors.find(
-        v => v.vendor_id === data.vendor_id &&
-             v.wedding_id === weddingId
-    );
-
-    if (!vendor) {
-        throw Object.assign(
-            new Error('Vendor not found.'),
-            { status: 404 }
         );
     }
 
@@ -56,9 +92,11 @@ function schedulePayment(weddingId, data) {
         typeof amount !== 'number' ||
         !Number.isFinite(amount) ||
         amount <= 0 ||
+        amount > 9999999999.99 ||
         Math.abs(
-            amount * 100 - Math.round(amount * 100)
-        ) > 0.000001
+            amount * 100 -
+            Math.round(amount * 100)
+        ) > 0.0001
     ) {
         throw Object.assign(
             new Error('Enter a valid payment amount.'),
@@ -71,6 +109,7 @@ function schedulePayment(weddingId, data) {
     if (
         typeof dueDate !== 'string' ||
         !/^\d{4}-\d{2}-\d{2}$/.test(dueDate) ||
+        dueDate.startsWith('0000') ||
         !Number.isFinite(Date.parse(dueDate)) ||
         new Date(dueDate).toISOString().slice(0, 10) !== dueDate
     ) {
@@ -80,61 +119,117 @@ function schedulePayment(weddingId, data) {
         );
     }
 
-    const scheduledAmount = db.payments
-        .filter(p => p.vendor_id === vendor.vendor_id)
-        .reduce(
-            (sum, p) => sum + Math.round(p.payment_amount * 100),
-            0
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        await lockWedding(client, weddingId);
+
+        // Find and lock the vendor
+        const vendorResult = await client.query(
+            `SELECT *
+             FROM vendor
+             WHERE vendor_id = $1
+             AND wedding_id = $2
+             FOR UPDATE`,
+            [data.vendor_id, weddingId]
         );
 
-    if (
-        scheduledAmount + Math.round(amount * 100) >
-        Math.round(vendor.contract_total * 100)
-    ) {
-        throw Object.assign(
-            new Error(
-                'Total payments cannot exceed the vendor contract amount.'
-            ),
-            { status: 409 }
+        if (vendorResult.rows.length === 0) {
+            throw Object.assign(
+                new Error('Vendor not found.'),
+                { status: 404 }
+            );
+        }
+
+        const vendor = vendorResult.rows[0];
+
+        // Calculate existing scheduled payments
+        const paymentResult = await client.query(
+            `SELECT COALESCE(
+                SUM(payment_amount), 0
+             ) AS scheduled_amount
+             FROM payment
+             WHERE vendor_id = $1`,
+            [vendor.vendor_id]
         );
+
+        const scheduledCents = Math.round(
+            Number(
+                paymentResult.rows[0].scheduled_amount
+            ) * 100
+        );
+
+        const amountCents = Math.round(amount * 100);
+
+        const contractCents = Math.round(
+            Number(vendor.contract_total) * 100
+        );
+
+        // Prevent exceeding the vendor contract
+        if (
+            scheduledCents + amountCents >
+            contractCents
+        ) {
+            throw Object.assign(
+                new Error(
+                    'Total payments cannot exceed the vendor contract amount.'
+                ),
+                { status: 409 }
+            );
+        }
+
+        // Automatically determine initial status
+        const today = new Date()
+            .toISOString()
+            .slice(0, 10);
+
+        const status =
+            dueDate < today ? 'Overdue' : 'Pending';
+
+        // Insert payment
+        const result = await client.query(
+            `INSERT INTO payment (
+                vendor_id,
+                payment_amount,
+                payment_due_date,
+                payment_status
+             )
+             VALUES ($1, $2, $3, $4)
+             RETURNING
+                payment_id,
+                vendor_id,
+                payment_amount,
+                payment_due_date::text AS payment_due_date,
+                payment_status`,
+            [
+                vendor.vendor_id,
+                amount,
+                dueDate,
+                status
+            ]
+        );
+
+        await client.query('COMMIT');
+
+        return formatPayment(result.rows[0]);
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+
+    } finally {
+        client.release();
     }
-
-    const today = new Date().toISOString().slice(0, 10);
-
-    const payment = {
-        payment_id: db.nextPaymentId++,
-        vendor_id: vendor.vendor_id,
-        payment_amount: amount,
-        payment_due_date: dueDate,
-        payment_status: dueDate < today ? 'Overdue' : 'Pending'
-    };
-
-    db.payments.push(payment);
-
-    writeDB(db);
-
-    return payment;
 }
 
-function updatePaymentStatus(weddingId, paymentId, newStatus) {
-    const db = readDB();
-
-    const vendorIds = db.vendors
-        .filter(v => v.wedding_id === weddingId)
-        .map(v => v.vendor_id);
-
-    const payment = db.payments.find(
-        p => p.payment_id === paymentId &&
-             vendorIds.includes(p.vendor_id)
-    );
-
-    if (!payment) {
-        throw Object.assign(
-            new Error('Payment not found.'),
-            { status: 404 }
-        );
-    }
-
+// Update payment status
+async function updatePaymentStatus(
+    weddingId,
+    paymentId,
+    newStatus
+) {
     const allowedStatuses = [
         'Pending',
         'Paid',
@@ -156,47 +251,89 @@ function updatePaymentStatus(weddingId, paymentId, newStatus) {
         Confirmed: []
     };
 
-    if (
-        !allowedTransitions[payment.payment_status]
-            .includes(newStatus)
-    ) {
-        throw Object.assign(
-            new Error('Invalid payment status transition.'),
-            { status: 409 }
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        await lockWedding(client, weddingId);
+
+        // Find and lock payment
+        const paymentResult = await client.query(
+            `SELECT p.*
+             FROM payment p
+             JOIN vendor v
+                ON p.vendor_id = v.vendor_id
+             WHERE p.payment_id = $1
+             AND v.wedding_id = $2
+             FOR UPDATE OF p`,
+            [paymentId, weddingId]
         );
+
+        if (paymentResult.rows.length === 0) {
+            throw Object.assign(
+                new Error('Payment not found.'),
+                { status: 404 }
+            );
+        }
+
+        const payment = paymentResult.rows[0];
+
+        // Validate payment lifecycle
+        if (
+            !allowedTransitions[payment.payment_status]
+                .includes(newStatus)
+        ) {
+            throw Object.assign(
+                new Error(
+                    'Invalid payment status transition.'
+                ),
+                { status: 409 }
+            );
+        }
+
+        const result = await client.query(
+            `UPDATE payment
+             SET payment_status = $1
+             WHERE payment_id = $2
+             RETURNING
+                payment_id,
+                vendor_id,
+                payment_amount,
+                payment_due_date::text AS payment_due_date,
+                payment_status`,
+            [newStatus, paymentId]
+        );
+
+        await client.query('COMMIT');
+
+        return formatPayment(result.rows[0]);
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+
+    } finally {
+        client.release();
     }
-
-    payment.payment_status = newStatus;
-
-    writeDB(db);
-
-    return payment;
 }
 
-function detectOverduePayments() {
-    const db = readDB();
+// Automatically detect overdue payments
+async function detectOverduePayments() {
+    const today = new Date()
+        .toISOString()
+        .slice(0, 10);
 
-    const today = new Date().toISOString().slice(0, 10);
-
-    let updatedCount = 0;
-
-    db.payments.forEach(payment => {
-        if (
-            payment.payment_status === 'Pending' &&
-            payment.payment_due_date < today
-        ) {
-            payment.payment_status = 'Overdue';
-
-            updatedCount++;
-        }
-    });
-
-    if (updatedCount > 0) {
-        writeDB(db);
-    }
+    const result = await pool.query(
+        `UPDATE payment
+         SET payment_status = 'Overdue'
+         WHERE payment_status = 'Pending'
+         AND payment_due_date < $1::date`,
+        [today]
+    );
 
     return {
-        updated_payments: updatedCount
+        updated_payments: result.rowCount
     };
 }
 
