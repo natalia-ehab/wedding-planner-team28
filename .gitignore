@@ -5,3 +5,9 @@ node_modules/
 !.env.example
 deployment/lambda/vendor-budget/
 deployment/lambda/response.json
+deployment/lambda/payment-reminder/
+deployment/lambda/reminder-env.json
+deployment/lambda/reminder-response.json
+deployment/lambda/payment-reminder/
+deployment/lambda/reminder-response.json
+deployment/lambda/reminder-env.json
