@@ -81,3 +81,9 @@ const paymentAPI = {
             payment_status: status
         })
 };
+
+// Guest Service Integration
+const guestAPI = {
+    getConfirmedCount: () =>
+        apiRequest('/guests/confirmed-count')
+};

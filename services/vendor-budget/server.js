@@ -7,6 +7,7 @@ const pool = require('./db');
 const vendorRoutes = require('./routes/vendorRoutes');
 const budgetRoutes = require('./routes/budgetRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const guestIntegrationRoutes = require('./routes/guestIntegrationRoutes');
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.get('/health', async (req, res) => {
 app.use('/api/vendors', vendorRoutes);
 app.use('/api/budget', budgetRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/guests', guestIntegrationRoutes);
 
 // Route Not Found
 app.use((req, res) => {

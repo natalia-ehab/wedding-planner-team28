@@ -589,20 +589,48 @@ function changePaymentStatus(id, status) {
 
 // Guest service integration
 
-function loadGuestCount() {
+async function loadGuestCount() {
 
-    $('#guest-count').textContent = '--';
+    const guestCount = $('#guest-count');
+    const guestMessage = $('#guest-message');
+    const refreshButton = $('#refresh-guests');
 
-    message(
-        $('#guest-message'),
-        'Guest Service API is not connected yet.'
-    );
+    refreshButton.disabled = true;
+
+    guestCount.textContent = '--';
+
+    message(guestMessage, 'Loading guest count...');
+
+    try {
+
+        const data = await guestAPI.getConfirmedCount();
+
+        guestCount.textContent =
+            data.confirmed_guest_count;
+
+        message(
+            guestMessage,
+            'Guest count retrieved successfully.',
+            'success'
+        );
+
+    } catch (error) {
+
+        guestCount.textContent = '--';
+
+        message(
+            guestMessage,
+            'Could not retrieve guest count: ' +
+            error.message,
+            'error'
+        );
+
+    } finally {
+
+        refreshButton.disabled = false;
+
+    }
 }
-
-$('#refresh-guests').addEventListener(
-    'click',
-    loadGuestCount
-);
 
 // Initial loading
 
