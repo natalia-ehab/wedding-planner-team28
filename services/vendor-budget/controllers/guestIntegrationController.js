@@ -5,11 +5,8 @@ const {
 async function getGuestCount(req, res) {
 
     try {
-        // Temporary wedding ID until authentication
-        const weddingId = 1;
-
         const result = await getConfirmedGuestCount(
-            weddingId
+            req.weddingId
         );
 
         res.status(200).json(result);

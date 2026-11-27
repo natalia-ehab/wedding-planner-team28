@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 
 <head>
     <meta charset="UTF-8">
@@ -17,153 +17,531 @@
 
     <main class="container">
 
-        <!-- Budget Management -->
-        <section class="card">
-            <h2>Budget Overview</h2>
+        <!-- Login Section -->
 
-            <form id="budget-form">
-                <label for="total-budget">Total Budget (EGP)</label>
-                <input type="number" id="total-budget" min="0.01" step="0.01" required>
-                <button type="submit">Set Budget</button>
-            </form>
+        <section class="card" id="login-section">
 
-            <div class="budget-summary">
-                <div>
-                    <h3>Total Budget</h3>
-                    <p id="budget-total">—</p>
-                </div>
+            <div class="login-brand">
 
-                <div>
-                    <h3>Committed</h3>
-                    <p id="budget-committed">—</p>
-                </div>
+                <svg class="heart-logo"
+                    width="38" height="38"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5">
 
-                <div>
-                    <h3>Paid</h3>
-                    <p id="budget-paid">—</p>
-                </div>
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67
+                    l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23
+                    l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/>
 
-                <div>
-                    <h3>Remaining</h3>
-                    <p id="budget-remaining">—</p>
-                </div>
+                </svg>
+
+                <h1>Wedding Planner</h1>
+
+                <p>YOUR PERFECT DAY STARTS HERE</p>
+
             </div>
 
-            <label for="budget-progress">Budget Usage</label>
-            <progress id="budget-progress" value="0" max="100"></progress>
+            <div class="login-intro">
 
-            <p id="budget-percentage">—</p>
-            <p id="budget-warning" role="status"></p>
-        </section>
+                <h2>Welcome back</h2>
 
-        <!-- Vendor Management -->
-        <section class="card">
-            <h2>Vendor Management</h2>
+                <p>Sign in to manage your wedding effortlessly.</p>
 
-            <form id="vendor-form">
+            </div>
 
-                <label for="vendor-name">Vendor Name</label>
-                <input type="text" id="vendor-name" maxlength="150" required>
+            <div class="role-tabs">
 
-                <label for="service-type">Service Type</label>
-                <select id="service-type" required>
-                    <option value="">Select Service</option>
-                    <option value="Venue">Venue</option>
-                    <option value="Catering">Catering</option>
-                    <option value="Photography">Photography</option>
-                    <option value="Decoration">Decoration</option>
-                    <option value="Music">Music</option>
-                    <option value="Other">Other</option>
-                </select>
+                <button type="button"
+                    class="role-tab active"
+                    onclick="selectLoginRole('couple', this)">
+                    Couple
+                </button>
 
-                <label for="vendor-email">Email</label>
-                <input type="email" id="vendor-email" maxlength="255" required>
+                <button type="button"
+                    class="role-tab"
+                    onclick="selectLoginRole('vendor', this)">
+                    Vendor
+                </button>
 
-                <label for="vendor-phone">Phone Number</label>
-                <input type="tel" id="vendor-phone" maxlength="20">
+            </div>
 
-                <label for="contract-total">Contract Total (EGP)</label>
-                <input type="number" id="contract-total" min="0.01" step="0.01" required>
+            <form id="login-form">
 
-                <button type="submit">Add Vendor</button>
+                <label for="login-email">
+                    Email address
+                </label>
+
+                <input type="email"
+                    id="login-email"
+                    placeholder="Enter your email"
+                    autocomplete="username"
+                    required>
+
+                <label for="login-password">
+                    Password
+                </label>
+
+                <div class="password-wrapper">
+
+                    <input type="password"
+                        id="login-password"
+                        placeholder="Enter your password"
+                        autocomplete="current-password"
+                        required>
+
+                    <button type="button"
+                        class="password-toggle"
+                        onclick="togglePassword(this)"
+                        aria-label="Show password">
+
+                        <svg width="20" height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5">
+
+                            <path d="M2 12s3.5-7 10-7 10 7 10 7
+                            -3.5 7-10 7S2 12 2 12z"/>
+
+                            <circle cx="12" cy="12" r="3"/>
+
+                        </svg>
+
+                    </button>
+
+                </div>
+
+                <div id="wedding-field">
+
+                    <label for="wedding-id">
+                        Wedding ID
+                    </label>
+
+                    <input type="number"
+                        id="wedding-id"
+                        placeholder="Enter your wedding ID"
+                        min="1" step="1">
+
+                </div>
+
+                <button type="submit"
+                    class="signin-button">
+
+                    Sign in
+
+                </button>
 
             </form>
 
-            <p id="vendor-message" role="status"></p>
+            <p id="login-message" role="status"></p>
 
-            <label for="vendor-search">Search Vendors</label>
-            <input type="search" id="vendor-search" placeholder="Search by service type">
+            <p class="login-footer">
+                Made for your happily ever after.
+            </p>
 
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Vendor Name</th>
-                            <th>Service Type</th>
-                            <th>Email</th>
-                            <th>Phone</th>
-                            <th>Contract Total</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-
-                    <tbody id="vendor-list"></tbody>
-                </table>
-            </div>
         </section>
 
-        <!-- Payment Management -->
-        <section class="card">
-            <h2>Payment Scheduling and Tracking</h2>
+        <!-- User Information -->
 
-            <form id="payment-form">
+        <section class="card" id="user-section" hidden>
 
-                <label for="payment-vendor">Vendor</label>
-                <select id="payment-vendor" required>
-                    <option value="">Select Vendor</option>
-                </select>
+            <h2>
+                Welcome, <span id="user-name"></span>
+            </h2>
 
-                <label for="payment-amount">Payment Amount (EGP)</label>
-                <input type="number" id="payment-amount" min="0.01" step="0.01" required>
+            <p>
+                Role: <span id="user-role"></span>
+            </p>
 
-                <label for="due-date">Due Date</label>
-                <input type="date" id="due-date" required>
-
-                <button type="submit">Schedule Payment</button>
-
-            </form>
-
-            <p id="payment-message" role="status"></p>
-
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Vendor</th>
-                            <th>Amount</th>
-                            <th>Due Date</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-
-                    <tbody id="payment-list"></tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- Guest Service Integration -->
-        <section class="card">
-            <h2>Final Guest Count</h2>
-
-            <p>Confirmed Guests: <span id="guest-count">—</span></p>
-
-            <button type="button" id="refresh-guests">
-                Get Guest Count
+            <button type="button" id="logout-button">
+                Logout
             </button>
 
-            <p id="guest-message" role="status"></p>
         </section>
+
+        <!-- Couple Dashboard -->
+
+        <div id="couple-dashboard" hidden>
+
+            <!-- Budget Management -->
+
+            <section class="card">
+
+                <h2>Budget Overview</h2>
+
+                <form id="budget-form">
+
+                    <label for="total-budget">
+                        Total Budget (EGP)
+                    </label>
+
+                    <input type="number"
+                        id="total-budget"
+                        min="0.01"
+                        step="0.01"
+                        required>
+
+                    <button type="submit">
+                        Set Budget
+                    </button>
+
+                </form>
+
+                <div class="budget-summary">
+
+                    <div>
+                        <h3>Total Budget</h3>
+                        <p id="budget-total">--</p>
+                    </div>
+
+                    <div>
+                        <h3>Committed</h3>
+                        <p id="budget-committed">--</p>
+                    </div>
+
+                    <div>
+                        <h3>Paid</h3>
+                        <p id="budget-paid">--</p>
+                    </div>
+
+                    <div>
+                        <h3>Remaining</h3>
+                        <p id="budget-remaining">--</p>
+                    </div>
+
+                </div>
+
+                <label for="budget-progress">
+                    Budget Usage
+                </label>
+
+                <progress id="budget-progress"
+                    value="0" max="100">
+                </progress>
+
+                <p id="budget-percentage">--</p>
+
+                <p id="budget-warning" role="status"></p>
+
+            </section>
+
+            <!-- Vendor Management -->
+
+            <section class="card">
+
+                <h2>Vendor Management</h2>
+
+                <form id="vendor-form">
+
+                    <label for="vendor-name">
+                        Vendor Name
+                    </label>
+
+                    <input type="text"
+                        id="vendor-name"
+                        maxlength="150"
+                        required>
+
+                    <label for="service-type">
+                        Service Type
+                    </label>
+
+                    <select id="service-type" required>
+
+                        <option value="">
+                            Select Service
+                        </option>
+
+                        <option value="Venue">Venue</option>
+
+                        <option value="Catering">Catering</option>
+
+                        <option value="Photography">
+                            Photography
+                        </option>
+
+                        <option value="Decoration">
+                            Decoration
+                        </option>
+
+                        <option value="Music">Music</option>
+
+                        <option value="Other">Other</option>
+
+                    </select>
+
+                    <label for="vendor-email">
+                        Email
+                    </label>
+
+                    <input type="email"
+                        id="vendor-email"
+                        maxlength="255"
+                        required>
+
+                    <label for="vendor-phone">
+                        Phone Number
+                    </label>
+
+                    <input type="tel"
+                        id="vendor-phone"
+                        maxlength="20">
+
+                    <label for="contract-total">
+                        Contract Total (EGP)
+                    </label>
+
+                    <input type="number"
+                        id="contract-total"
+                        min="0.01"
+                        step="0.01"
+                        required>
+
+                    <button type="submit">
+                        Add Vendor
+                    </button>
+
+                </form>
+
+                <p id="vendor-message" role="status"></p>
+
+                <label for="vendor-search">
+                    Search Vendors
+                </label>
+
+                <input type="search"
+                    id="vendor-search"
+                    placeholder="Search by service type">
+
+                <div class="table-wrapper">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>Vendor Name</th>
+                                <th>Service Type</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Contract Total</th>
+                                <th>Actions</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="vendor-list"></tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+            <!-- Payment Management -->
+
+            <section class="card">
+
+                <h2>Payment Scheduling and Tracking</h2>
+
+                <form id="payment-form">
+
+                    <label for="payment-vendor">
+                        Vendor
+                    </label>
+
+                    <select id="payment-vendor" required>
+
+                        <option value="">
+                            Select Vendor
+                        </option>
+
+                    </select>
+
+                    <label for="payment-amount">
+                        Payment Amount (EGP)
+                    </label>
+
+                    <input type="number"
+                        id="payment-amount"
+                        min="0.01"
+                        step="0.01"
+                        required>
+
+                    <label for="due-date">
+                        Due Date
+                    </label>
+
+                    <input type="date"
+                        id="due-date"
+                        required>
+
+                    <button type="submit">
+                        Schedule Payment
+                    </button>
+
+                </form>
+
+                <p id="payment-message" role="status"></p>
+
+                <div class="table-wrapper">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>Vendor</th>
+                                <th>Amount</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="payment-list"></tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+            <!-- Couple Guest Integration -->
+
+            <section class="card">
+
+                <h2>Final Guest Count</h2>
+
+                <p>
+                    Confirmed Guests:
+                    <span id="guest-count">--</span>
+                </p>
+
+                <button type="button" id="refresh-guests">
+                    Get Guest Count
+                </button>
+
+                <p id="guest-message" role="status"></p>
+
+            </section>
+
+        </div>
+
+        <!-- Vendor Dashboard -->
+
+        <div id="vendor-dashboard" hidden>
+
+            <!-- Assigned Services -->
+
+            <section class="card">
+
+                <h2>My Assigned Services</h2>
+
+                <div class="table-wrapper">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>Vendor Name</th>
+                                <th>Wedding ID</th>
+                                <th>Service Type</th>
+                                <th>Contract Total</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="assigned-vendor-list"></tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+            <!-- Vendor Payments -->
+
+            <section class="card">
+
+                <h2>My Payments</h2>
+
+                <button type="button"
+                    id="refresh-vendor-payments">
+
+                    Refresh Payments
+
+                </button>
+
+                <p id="vendor-payment-message"
+                    role="status">
+                </p>
+
+                <div class="table-wrapper">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>Vendor</th>
+                                <th>Wedding ID</th>
+                                <th>Amount</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="vendor-payment-list"></tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+            <!-- Vendor Guest Integration -->
+
+            <section class="card">
+
+                <h2>Confirmed Guest Count</h2>
+
+                <label for="vendor-wedding-select">
+                    Select Wedding
+                </label>
+
+                <select id="vendor-wedding-select">
+
+                    <option value="">
+                        Select Wedding
+                    </option>
+
+                </select>
+
+                <p>
+                    Confirmed Guests:
+                    <span id="vendor-guest-count">--</span>
+                </p>
+
+                <button type="button"
+                    id="vendor-refresh-guests">
+
+                    Get Guest Count
+
+                </button>
+
+                <p id="vendor-guest-message"
+                    role="status">
+                </p>
+
+            </section>
+
+        </div>
 
     </main>
 

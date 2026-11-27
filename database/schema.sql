@@ -143,3 +143,35 @@ LEFT JOIN vendor_totals vt
 
 LEFT JOIN payment_totals pt
     ON b.wedding_id = pt.wedding_id;
+-- Authentication and User Roles
+
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS full_name VARCHAR(150),
+ADD COLUMN IF NOT EXISTS email VARCHAR(255) UNIQUE,
+ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255),
+ADD COLUMN IF NOT EXISTS role VARCHAR(20)
+CHECK (role IN ('couple', 'vendor', 'guest')),
+ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ
+DEFAULT CURRENT_TIMESTAMP;
+
+-- Vendor Account Assignment
+
+ALTER TABLE vendor
+ADD COLUMN IF NOT EXISTS user_id INTEGER
+REFERENCES users(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_vendor_user_id
+ON vendor(user_id);
+
+-- Payment and Task Integration
+
+ALTER TABLE task
+ADD COLUMN IF NOT EXISTS source VARCHAR(100)
+DEFAULT 'manual';
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_task_unique_payment_source
+ON task(source)
+WHERE source LIKE 'payment:%';
+
+ALTER TABLE payment
+ADD COLUMN IF NOT EXISTS reminder_sent_at TIMESTAMPTZ;

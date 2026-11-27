@@ -2,7 +2,9 @@ const budgetService = require('../services/budgetService');
 
 const getBudget = async (req, res, next) => {
     try {
-        const budget = await budgetService.getBudget(1);
+        const budget = await budgetService.getBudget(
+            req.weddingId
+        );
 
         res.json(budget);
 
@@ -14,7 +16,7 @@ const getBudget = async (req, res, next) => {
 const setBudget = async (req, res, next) => {
     try {
         const budget = await budgetService.setBudget(
-            1,
+            req.weddingId,
             req.body.total_amount
         );
 
@@ -27,7 +29,9 @@ const setBudget = async (req, res, next) => {
 
 const getBudgetSummary = async (req, res, next) => {
     try {
-        const summary = await budgetService.getBudgetSummary(1);
+        const summary = await budgetService.getBudgetSummary(
+            req.weddingId
+        );
 
         res.json(summary);
 

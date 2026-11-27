@@ -3,7 +3,7 @@ const vendorService = require('../services/vendorService');
 const getVendors = async (req, res, next) => {
     try {
         const vendors = await vendorService.getVendors(
-            1,
+            req.weddingId,
             req.query.service_type
         );
 
@@ -17,7 +17,7 @@ const getVendors = async (req, res, next) => {
 const getVendorById = async (req, res, next) => {
     try {
         const vendor = await vendorService.getVendorById(
-            1,
+            req.weddingId,
             Number(req.params.id)
         );
 
@@ -31,7 +31,7 @@ const getVendorById = async (req, res, next) => {
 const createVendor = async (req, res, next) => {
     try {
         const vendor = await vendorService.createVendor(
-            1,
+            req.weddingId,
             req.body
         );
 
@@ -45,7 +45,7 @@ const createVendor = async (req, res, next) => {
 const updateVendor = async (req, res, next) => {
     try {
         const vendor = await vendorService.updateVendor(
-            1,
+            req.weddingId,
             Number(req.params.id),
             req.body
         );
@@ -60,7 +60,7 @@ const updateVendor = async (req, res, next) => {
 const deleteVendor = async (req, res, next) => {
     try {
         await vendorService.deleteVendor(
-            1,
+            req.weddingId,
             Number(req.params.id)
         );
 

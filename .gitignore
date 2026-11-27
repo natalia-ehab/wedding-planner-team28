@@ -11,3 +11,8 @@ deployment/lambda/reminder-response.json
 deployment/lambda/payment-reminder/
 deployment/lambda/reminder-response.json
 deployment/lambda/reminder-env.json
+# Generated Lambda deployment files
+deployment/lambda/auth-final/
+deployment/lambda/vendor-budget-final/
+deployment/lambda/payment-reminder/
+deployment/lambda/reminder-response.json

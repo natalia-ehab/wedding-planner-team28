@@ -1,36 +1,211 @@
-// API-backed frontend state
+const $ = selector => document.querySelector(selector);
 
 let vendors = [];
 let payments = [];
+let assignedVendors = [];
 let editingVendorId = null;
+let selectedLoginRole = 'couple';
+let busy = false;
 
-const $ = selector => document.querySelector(selector);
-
-// DOM elements
-
-const budgetForm = $('#budget-form');
-const vendorForm = $('#vendor-form');
-const paymentForm = $('#payment-form');
-const vendorSearch = $('#vendor-search');
-const paymentVendor = $('#payment-vendor');
-const vendorMessage = $('#vendor-message');
-const paymentMessage = $('#payment-message');
-const budgetWarning = $('#budget-warning');
-
-// Format money
+// Helper Functions
 
 function formatMoney(amount) {
     return Number(amount).toFixed(2) + ' EGP';
 }
-
-// Display messages
 
 function message(element, text, type = '') {
     element.textContent = text;
     element.className = type;
 }
 
-// Render budget information
+function appendCells(row, values) {
+    values.forEach(value => {
+        const cell = document.createElement('td');
+        cell.textContent = value ?? '';
+        row.appendChild(cell);
+    });
+}
+
+function actionButton(label, handler) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = label;
+    button.addEventListener('click', handler);
+    return button;
+}
+
+// Login Role Selection
+
+function selectLoginRole(role, button) {
+
+    if (busy) return;
+
+    selectedLoginRole = role;
+
+    document.querySelectorAll('.role-tab')
+        .forEach(tab => {
+            tab.classList.remove('active');
+            tab.setAttribute('aria-pressed', 'false');
+        });
+
+    button.classList.add('active');
+    button.setAttribute('aria-pressed', 'true');
+
+    $('#wedding-field').hidden = role === 'vendor';
+
+    $('#wedding-id').required = role === 'couple';
+
+    if (role === 'vendor') {
+        $('#wedding-id').value = '';
+    }
+
+    message($('#login-message'), '');
+}
+
+// Show or Hide Password
+
+function togglePassword(button) {
+
+    const input = $('#login-password');
+
+    const visible = input.type === 'password';
+
+    input.type = visible ? 'text' : 'password';
+
+    button.setAttribute(
+        'aria-label',
+        visible ? 'Hide password' : 'Show password'
+    );
+
+    button.setAttribute('aria-pressed', String(visible));
+}
+
+// Initialize Login Controls
+
+$('#wedding-id').required = true;
+
+document.querySelectorAll('.role-tab').forEach(tab => {
+    tab.setAttribute(
+        'aria-pressed',
+        String(tab.classList.contains('active'))
+    );
+});
+
+// Authentication
+
+$('#login-form').addEventListener('submit', async event => {
+
+    event.preventDefault();
+
+    if (busy) return;
+
+    busy = true;
+
+    const loginButton = $('#login-form .signin-button');
+
+    loginButton.disabled = true;
+    loginButton.textContent = 'Signing in...';
+
+    message($('#login-message'), '');
+
+    try {
+
+        const user = await login(
+            $('#login-email').value.trim(),
+            $('#login-password').value
+        );
+
+        if (user.role !== selectedLoginRole) {
+
+            throw new Error(
+                `This account belongs to the ${user.role} role. Please select the correct account type.`
+            );
+        }
+
+        if (user.role === 'couple') {
+
+            const weddingId = Number($('#wedding-id').value);
+
+            if (
+                !Number.isSafeInteger(weddingId) ||
+                weddingId <= 0
+            ) {
+                throw new Error('Enter a valid wedding ID.');
+            }
+
+            setWeddingId(weddingId);
+
+            await loadData();
+
+        } else if (user.role === 'vendor') {
+
+            await loadVendorPortal();
+
+        } else {
+
+            throw new Error(
+                'This dashboard is not available for your role.'
+            );
+        }
+
+        $('#user-name').textContent = user.full_name;
+        $('#user-role').textContent = user.role;
+
+        $('#login-section').hidden = true;
+        $('#user-section').hidden = false;
+
+        $('#couple-dashboard').hidden =
+            user.role !== 'couple';
+
+        $('#vendor-dashboard').hidden =
+            user.role !== 'vendor';
+
+        $('#login-form').reset();
+
+        message($('#login-message'), '');
+
+    } catch (error) {
+
+        logout();
+
+        message(
+            $('#login-message'),
+            error.message,
+            'error'
+        );
+
+    } finally {
+
+        $('#login-password').value = '';
+        $('#login-password').type = 'password';
+
+        $('.password-toggle').setAttribute(
+            'aria-label', 'Show password'
+        );
+
+        $('.password-toggle').setAttribute(
+            'aria-pressed', 'false'
+        );
+
+        loginButton.disabled = false;
+        loginButton.textContent = 'Sign in';
+
+        busy = false;
+    }
+});
+
+// Logout
+
+$('#logout-button').addEventListener('click', () => {
+
+    if (busy) return;
+
+    logout();
+
+    window.location.reload();
+});
+
+// Budget Management
 
 function renderBudget(summary) {
 
@@ -60,7 +235,7 @@ function renderBudget(summary) {
     ) {
 
         message(
-            budgetWarning,
+            $('#budget-warning'),
             'Warning: Budget exceeded!',
             'error'
         );
@@ -70,62 +245,113 @@ function renderBudget(summary) {
     ) {
 
         message(
-            budgetWarning,
+            $('#budget-warning'),
             'Warning: You have used 80% or more of your budget.',
             'warning'
         );
 
     } else {
 
-        message(budgetWarning, '');
+        message($('#budget-warning'), '');
     }
 }
 
-// Create table cells
+// Common Couple API Operations
 
-function appendCells(row, values) {
+async function performAction(
+    element,
+    operation,
+    successText,
+    afterSuccess
+) {
 
-    values.forEach(value => {
+    if (busy) return;
 
-        const cell = document.createElement('td');
+    busy = true;
 
-        cell.textContent = value ?? '';
+    let saved = false;
+    let result;
 
-        row.appendChild(cell);
-    });
+    try {
+
+        result = await operation();
+
+        saved = true;
+
+        if (afterSuccess) {
+            afterSuccess();
+        }
+
+        await loadData();
+
+        if (result?.task_sync_required) {
+
+            message(
+                element,
+                'Payment saved, but task creation failed. Use Retry Task.',
+                'warning'
+            );
+
+        } else if (
+            element !== $('#budget-warning') ||
+            !element.textContent
+        ) {
+
+            message(element, successText, 'success');
+        }
+
+    } catch (error) {
+
+        let text = saved
+            ? 'Saved, but refresh failed: ' + error.message
+            : error.message;
+
+        if (result?.task_sync_required) {
+            text += ' Task synchronization is still required.';
+        }
+
+        message(element, text, 'error');
+
+    } finally {
+
+        busy = false;
+    }
 }
 
-// Create action buttons
+// Set Budget
 
-function actionButton(label, handler) {
+$('#budget-form').addEventListener('submit', event => {
 
-    const button = document.createElement('button');
+    event.preventDefault();
 
-    button.type = 'button';
+    const amount = Number($('#total-budget').value);
 
-    button.textContent = label;
+    if (!Number.isFinite(amount) || amount <= 0) {
 
-    button.addEventListener('click', handler);
+        return message(
+            $('#budget-warning'),
+            'Enter a valid budget.',
+            'error'
+        );
+    }
 
-    return button;
-}
+    performAction(
+        $('#budget-warning'),
+        () => budgetAPI.update(amount),
+        'Budget updated successfully.',
+        () => $('#budget-form').reset()
+    );
+});
 
-// Render vendors
+// Render Vendors
 
-function renderVendors() {
-
-    const search =
-        vendorSearch.value.trim().toLowerCase();
+function renderVendors(data = vendors) {
 
     const list = $('#vendor-list');
 
     list.replaceChildren();
 
-    const filteredVendors = vendors.filter(vendor =>
-        vendor.service_type.toLowerCase().includes(search)
-    );
-
-    filteredVendors.forEach(vendor => {
+    data.forEach(vendor => {
 
         const row = document.createElement('tr');
 
@@ -140,6 +366,7 @@ function renderVendors() {
         const actions = document.createElement('td');
 
         actions.append(
+
             actionButton('Edit', () =>
                 editVendor(vendor.vendor_id)
             ),
@@ -150,24 +377,25 @@ function renderVendors() {
         );
 
         row.appendChild(actions);
-
         list.appendChild(row);
     });
 }
 
-// Update payment vendor dropdown
+// Payment Vendor Dropdown
 
 function updateVendorOptions() {
 
-    const selected = paymentVendor.value;
+    const select = $('#payment-vendor');
 
-    paymentVendor.replaceChildren(
+    const selected = select.value;
+
+    select.replaceChildren(
         new Option('Select Vendor', '')
     );
 
     vendors.forEach(vendor => {
 
-        paymentVendor.add(
+        select.add(
             new Option(
                 vendor.vendor_name,
                 vendor.vendor_id
@@ -175,14 +403,189 @@ function updateVendorOptions() {
         );
     });
 
-    paymentVendor.value = selected;
+    select.value = selected;
 
-    if (paymentVendor.selectedIndex === -1) {
-        paymentVendor.selectedIndex = 0;
+    if (select.selectedIndex === -1) {
+        select.selectedIndex = 0;
     }
 }
 
-// Render payments
+// Reset Vendor Form
+
+function resetVendorForm() {
+
+    editingVendorId = null;
+
+    $('#vendor-form').reset();
+
+    $('#vendor-form button[type="submit"]').textContent =
+        'Add Vendor';
+}
+
+// Add or Update Vendor
+
+$('#vendor-form').addEventListener('submit', event => {
+
+    event.preventDefault();
+
+    const data = {
+
+        vendor_name: $('#vendor-name').value.trim(),
+
+        service_type: $('#service-type').value,
+
+        vendor_email: $('#vendor-email').value.trim(),
+
+        vendor_phone_number: $('#vendor-phone').value.trim(),
+
+        contract_total: Number($('#contract-total').value)
+    };
+
+    if (
+        !data.vendor_name ||
+        !data.service_type ||
+        !data.vendor_email ||
+        !Number.isFinite(data.contract_total) ||
+        data.contract_total <= 0
+    ) {
+
+        return message(
+            $('#vendor-message'),
+            'Enter valid vendor details.',
+            'error'
+        );
+    }
+
+    const id = editingVendorId;
+
+    performAction(
+
+        $('#vendor-message'),
+
+        () => id === null
+            ? vendorAPI.create(data)
+            : vendorAPI.update(id, data),
+
+        id === null
+            ? 'Vendor added successfully.'
+            : 'Vendor updated successfully.',
+
+        resetVendorForm
+    );
+});
+
+// Edit Vendor
+
+function editVendor(id) {
+
+    if (busy) return;
+
+    const vendor = vendors.find(
+        v => Number(v.vendor_id) === Number(id)
+    );
+
+    if (!vendor) return;
+
+    editingVendorId = id;
+
+    $('#vendor-name').value = vendor.vendor_name;
+
+    $('#service-type').value = vendor.service_type;
+
+    $('#vendor-email').value = vendor.vendor_email;
+
+    $('#vendor-phone').value =
+        vendor.vendor_phone_number || '';
+
+    $('#contract-total').value = vendor.contract_total;
+
+    $('#vendor-form button[type="submit"]').textContent =
+        'Update Vendor';
+
+    message(
+        $('#vendor-message'),
+        'Editing vendor details.'
+    );
+
+    $('#vendor-form').scrollIntoView({
+        behavior: 'smooth'
+    });
+}
+
+// Delete Vendor
+
+function deleteVendor(id) {
+
+    if (
+        busy ||
+        !confirm('Are you sure you want to delete this vendor?')
+    ) {
+        return;
+    }
+
+    performAction(
+
+        $('#vendor-message'),
+
+        () => vendorAPI.remove(id),
+
+        'Vendor deleted successfully.',
+
+        () => {
+
+            if (editingVendorId === id) {
+                resetVendorForm();
+            }
+        }
+    );
+}
+
+// Search Vendors Using Backend API
+
+let searchTimer;
+let searchVersion = 0;
+
+$('#vendor-search').addEventListener('input', () => {
+
+    clearTimeout(searchTimer);
+
+    const version = ++searchVersion;
+
+    searchTimer = setTimeout(async () => {
+
+        if (
+            !authToken ||
+            currentUser?.role !== 'couple'
+        ) {
+            return;
+        }
+
+        try {
+
+            const search = $('#vendor-search').value.trim();
+
+            const results = await vendorAPI.getAll(search);
+
+            if (version === searchVersion) {
+                renderVendors(results);
+            }
+
+        } catch (error) {
+
+            if (version === searchVersion) {
+
+                message(
+                    $('#vendor-message'),
+                    error.message,
+                    'error'
+                );
+            }
+        }
+
+    }, 300);
+});
+
+// Render Couple Payments
 
 function renderPayments() {
 
@@ -192,19 +595,26 @@ function renderPayments() {
 
     payments.forEach(payment => {
 
-        const vendor = vendors.find(v =>
-            Number(v.vendor_id) ===
-            Number(payment.vendor_id)
+        const vendor = vendors.find(
+            v => Number(v.vendor_id) ===
+                Number(payment.vendor_id)
         );
 
         const row = document.createElement('tr');
 
         appendCells(row, [
+
             vendor?.vendor_name || 'Unknown Vendor',
+
             formatMoney(payment.payment_amount),
+
             String(payment.payment_due_date).slice(0, 10),
+
             payment.payment_status
         ]);
+
+        row.children[3].className =
+            payment.payment_status.toLowerCase();
 
         const actions = document.createElement('td');
 
@@ -215,37 +625,101 @@ function renderPayments() {
         ) {
 
             actions.appendChild(
+
                 actionButton('Mark as Paid', () =>
-                    changePaymentStatus(
-                        payment.payment_id,
-                        'Paid'
-                    )
-                )
-            );
-
-        } else if (
-            payment.payment_status === 'Paid'
-        ) {
-
-            actions.appendChild(
-                actionButton('Confirm Payment', () =>
-                    changePaymentStatus(
-                        payment.payment_id,
-                        'Confirmed'
-                    )
+                    markPaymentPaid(payment.payment_id)
                 )
             );
         }
 
-        row.appendChild(actions);
+        actions.appendChild(
 
+            actionButton('Retry Task', () =>
+
+                performAction(
+                    $('#payment-message'),
+
+                    () => paymentAPI.retryTask(
+                        payment.payment_id
+                    ),
+
+                    'Payment task synchronized successfully.'
+                )
+            )
+        );
+
+        row.appendChild(actions);
         list.appendChild(row);
     });
 }
 
-// Load data from backend
+// Schedule Payment
+
+$('#payment-form').addEventListener('submit', event => {
+
+    event.preventDefault();
+
+    const data = {
+
+        vendor_id: Number($('#payment-vendor').value),
+
+        payment_amount: Number($('#payment-amount').value),
+
+        payment_due_date: $('#due-date').value
+    };
+
+    if (
+        !data.vendor_id ||
+        !Number.isFinite(data.payment_amount) ||
+        data.payment_amount <= 0 ||
+        !data.payment_due_date
+    ) {
+
+        return message(
+            $('#payment-message'),
+            'Enter valid payment details.',
+            'error'
+        );
+    }
+
+    performAction(
+
+        $('#payment-message'),
+
+        () => paymentAPI.create(data),
+
+        'Payment scheduled and task created successfully.',
+
+        () => $('#payment-form').reset()
+    );
+});
+
+// Mark Payment as Paid
+
+function markPaymentPaid(id) {
+
+    if (
+        busy ||
+        !confirm('Mark this payment as paid?')
+    ) {
+        return;
+    }
+
+    performAction(
+
+        $('#payment-message'),
+
+        () => paymentAPI.updateStatus(id, 'Paid'),
+
+        'Payment marked as paid successfully.'
+    );
+}
+
+// Load Couple Dashboard
 
 async function loadData() {
+
+    const version = ++searchVersion;
 
     const [
         vendorData,
@@ -264,7 +738,22 @@ async function loadData() {
 
     payments = paymentData;
 
-    renderVendors();
+    if (version === searchVersion) {
+
+        const search = $('#vendor-search').value
+            .trim()
+            .toLowerCase();
+
+        renderVendors(
+
+            vendors.filter(vendor =>
+
+                vendor.service_type
+                    .toLowerCase()
+                    .includes(search)
+            )
+        );
+    }
 
     updateVendorOptions();
 
@@ -273,18 +762,160 @@ async function loadData() {
     renderBudget(summary);
 }
 
-// Handle API operations
+// Couple Guest Count
 
-let busy = false;
+async function loadGuestCount() {
 
-async function performAction(
-    element,
-    operation,
-    successText,
-    afterSuccess
-) {
+    const button = $('#refresh-guests');
 
     if (busy) return;
+
+    busy = true;
+
+    button.disabled = true;
+
+    $('#guest-count').textContent = '--';
+
+    message($('#guest-message'), 'Loading guest count...');
+
+    try {
+
+        const data = await guestAPI.getConfirmedCount();
+
+        $('#guest-count').textContent =
+            data.confirmed_guest_count;
+
+        message(
+            $('#guest-message'),
+            'Guest count retrieved successfully.',
+            'success'
+        );
+
+    } catch (error) {
+
+        message(
+            $('#guest-message'),
+            error.message,
+            'error'
+        );
+
+    } finally {
+
+        button.disabled = false;
+
+        busy = false;
+    }
+}
+
+$('#refresh-guests').addEventListener(
+    'click',
+    loadGuestCount
+);
+
+// Load Vendor Dashboard
+
+async function loadVendorPortal() {
+
+    const [vendorData, paymentData] = await Promise.all([
+
+        vendorPortalAPI.getAssignedVendors(),
+
+        vendorPortalAPI.getPayments()
+    ]);
+
+    assignedVendors = vendorData;
+
+    renderAssignedVendors();
+
+    renderVendorPayments(paymentData);
+
+    updateVendorWeddingOptions();
+}
+
+// Render Assigned Services
+
+function renderAssignedVendors() {
+
+    const list = $('#assigned-vendor-list');
+
+    list.replaceChildren();
+
+    assignedVendors.forEach(vendor => {
+
+        const row = document.createElement('tr');
+
+        appendCells(row, [
+
+            vendor.vendor_name,
+
+            vendor.wedding_id,
+
+            vendor.service_type,
+
+            formatMoney(vendor.contract_total)
+        ]);
+
+        list.appendChild(row);
+    });
+}
+
+// Render Vendor Payments
+
+function renderVendorPayments(data) {
+
+    const list = $('#vendor-payment-list');
+
+    list.replaceChildren();
+
+    data.forEach(payment => {
+
+        const row = document.createElement('tr');
+
+        appendCells(row, [
+
+            payment.vendor_name,
+
+            payment.wedding_id,
+
+            formatMoney(payment.payment_amount),
+
+            String(payment.payment_due_date).slice(0, 10),
+
+            payment.payment_status
+        ]);
+
+        row.children[4].className =
+            payment.payment_status.toLowerCase();
+
+        const actions = document.createElement('td');
+
+        if (payment.payment_status === 'Paid') {
+
+            actions.appendChild(
+
+                actionButton('Confirm Payment', () =>
+
+                    confirmVendorPayment(payment.payment_id)
+                )
+            );
+        }
+
+        row.appendChild(actions);
+
+        list.appendChild(row);
+    });
+}
+
+// Confirm Vendor Payment
+
+async function confirmVendorPayment(id) {
+
+    if (
+        busy ||
+        !confirm('Do you confirm receiving this payment?')
+    ) {
+        return;
+    }
 
     busy = true;
 
@@ -292,36 +923,29 @@ async function performAction(
 
     try {
 
-        await operation();
+        await vendorPortalAPI.confirmPayment(id);
 
         saved = true;
 
-        if (afterSuccess) {
-            afterSuccess();
-        }
+        const data = await vendorPortalAPI.getPayments();
 
-        await loadData();
+        renderVendorPayments(data);
 
-        if (
-            element !== budgetWarning ||
-            !budgetWarning.textContent
-        ) {
-
-            message(
-                element,
-                successText,
-                'success'
-            );
-        }
+        message(
+            $('#vendor-payment-message'),
+            'Payment confirmed successfully.',
+            'success'
+        );
 
     } catch (error) {
 
         message(
-            element,
+            $('#vendor-payment-message'),
+
             saved
-                ? 'Saved, but refresh failed. Reload the page: '
-                    + error.message
+                ? 'Payment confirmed, but refresh failed.'
                 : error.message,
+
             'error'
         );
 
@@ -331,316 +955,153 @@ async function performAction(
     }
 }
 
-// Set wedding budget
+// Refresh Vendor Payments
 
-budgetForm.addEventListener('submit', event => {
+$('#refresh-vendor-payments').addEventListener(
+    'click',
+    async () => {
 
-    event.preventDefault();
+        if (busy) return;
 
-    const amount = Number(
-        $('#total-budget').value
-    );
+        busy = true;
 
-    if (
-        !Number.isFinite(amount) ||
-        amount <= 0
-    ) {
+        try {
 
-        return message(
-            budgetWarning,
-            'Enter a valid budget.',
-            'error'
-        );
-    }
+            const data =
+                await vendorPortalAPI.getPayments();
 
-    performAction(
+            renderVendorPayments(data);
 
-        budgetWarning,
+            message(
+                $('#vendor-payment-message'),
+                'Payments refreshed.',
+                'success'
+            );
 
-        () => budgetAPI.update(amount),
+        } catch (error) {
 
-        'Budget updated successfully.',
+            message(
+                $('#vendor-payment-message'),
+                error.message,
+                'error'
+            );
 
-        () => budgetForm.reset()
-    );
-});
+        } finally {
 
-// Reset vendor form
-
-function resetVendorForm() {
-
-    editingVendorId = null;
-
-    vendorForm.reset();
-
-    vendorForm.querySelector(
-        'button[type="submit"]'
-    ).textContent = 'Add Vendor';
-}
-
-// Create or update vendor
-
-vendorForm.addEventListener('submit', event => {
-
-    event.preventDefault();
-
-    const data = {
-
-        vendor_name:
-            $('#vendor-name').value.trim(),
-
-        service_type:
-            $('#service-type').value,
-
-        vendor_email:
-            $('#vendor-email').value.trim(),
-
-        vendor_phone_number:
-            $('#vendor-phone').value.trim(),
-
-        contract_total:
-            Number($('#contract-total').value)
-    };
-
-    if (
-        !data.vendor_name ||
-        !data.service_type ||
-        !data.vendor_email ||
-        !Number.isFinite(data.contract_total) ||
-        data.contract_total <= 0
-    ) {
-
-        return message(
-            vendorMessage,
-            'Please enter valid vendor details.',
-            'error'
-        );
-    }
-
-    const id = editingVendorId;
-
-    performAction(
-
-        vendorMessage,
-
-        () => id === null
-            ? vendorAPI.create(data)
-            : vendorAPI.update(id, data),
-
-        id === null
-            ? 'Vendor added successfully.'
-            : 'Vendor updated successfully.',
-
-        resetVendorForm
-    );
-});
-
-// Edit vendor
-
-function editVendor(id) {
-
-    if (busy) return;
-
-    const vendor = vendors.find(
-        v => v.vendor_id === id
-    );
-
-    if (!vendor) return;
-
-    editingVendorId = id;
-
-    $('#vendor-name').value =
-        vendor.vendor_name;
-
-    $('#service-type').value =
-        vendor.service_type;
-
-    $('#vendor-email').value =
-        vendor.vendor_email;
-
-    $('#vendor-phone').value =
-        vendor.vendor_phone_number || '';
-
-    $('#contract-total').value =
-        vendor.contract_total;
-
-    vendorForm.querySelector(
-        'button[type="submit"]'
-    ).textContent = 'Update Vendor';
-
-    message(
-        vendorMessage,
-        'Editing vendor details.'
-    );
-
-    vendorForm.scrollIntoView({
-        behavior: 'smooth'
-    });
-}
-
-// Delete vendor
-
-function deleteVendor(id) {
-
-    if (
-        busy ||
-        !confirm(
-            'Are you sure you want to delete this vendor?'
-        )
-    ) {
-        return;
-    }
-
-    performAction(
-
-        vendorMessage,
-
-        () => vendorAPI.remove(id),
-
-        'Vendor deleted successfully.',
-
-        () => {
-
-            if (editingVendorId === id) {
-                resetVendorForm();
-            }
+            busy = false;
         }
-    );
-}
-
-// Search vendors
-
-vendorSearch.addEventListener(
-    'input',
-    renderVendors
+    }
 );
 
-// Schedule payment
+// Vendor Wedding Dropdown
 
-paymentForm.addEventListener('submit', event => {
+function updateVendorWeddingOptions() {
 
-    event.preventDefault();
+    const select = $('#vendor-wedding-select');
 
-    const data = {
-
-        vendor_id:
-            Number(paymentVendor.value),
-
-        payment_amount:
-            Number($('#payment-amount').value),
-
-        payment_due_date:
-            $('#due-date').value
-    };
-
-    if (
-        !data.vendor_id ||
-        !Number.isFinite(data.payment_amount) ||
-        data.payment_amount <= 0 ||
-        !data.payment_due_date
-    ) {
-
-        return message(
-            paymentMessage,
-            'Please enter valid payment details.',
-            'error'
-        );
-    }
-
-    performAction(
-
-        paymentMessage,
-
-        () => paymentAPI.create(data),
-
-        'Payment scheduled successfully.',
-
-        () => paymentForm.reset()
+    select.replaceChildren(
+        new Option('Select Wedding', '')
     );
-});
 
-// Update payment status
+    const weddingIds = [
 
-function changePaymentStatus(id, status) {
+        ...new Set(
+            assignedVendors.map(vendor => vendor.wedding_id)
+        )
+    ];
 
-    const question = status === 'Paid'
+    weddingIds.forEach(id => {
 
-        ? 'Are you sure you want to mark this payment as paid?'
-
-        : 'Do you confirm receiving this payment?';
-
-    if (busy || !confirm(question)) {
-        return;
-    }
-
-    performAction(
-
-        paymentMessage,
-
-        () => paymentAPI.updateStatus(id, status),
-
-        status === 'Paid'
-
-            ? 'Payment marked as paid successfully.'
-
-            : 'Payment confirmed successfully.'
-    );
-}
-
-// Guest service integration
-
-async function loadGuestCount() {
-
-    const guestCount = $('#guest-count');
-    const guestMessage = $('#guest-message');
-    const refreshButton = $('#refresh-guests');
-
-    refreshButton.disabled = true;
-
-    guestCount.textContent = '--';
-
-    message(guestMessage, 'Loading guest count...');
-
-    try {
-
-        const data = await guestAPI.getConfirmedCount();
-
-        guestCount.textContent =
-            data.confirmed_guest_count;
-
-        message(
-            guestMessage,
-            'Guest count retrieved successfully.',
-            'success'
+        select.add(
+            new Option(`Wedding ${id}`, id)
         );
+    });
 
-    } catch (error) {
+    if (weddingIds.length === 1) {
 
-        guestCount.textContent = '--';
-
-        message(
-            guestMessage,
-            'Could not retrieve guest count: ' +
-            error.message,
-            'error'
-        );
-
-    } finally {
-
-        refreshButton.disabled = false;
-
+        select.value = weddingIds[0];
     }
 }
 
-// Initial loading
+$('#vendor-wedding-select').addEventListener(
+    'change',
+    () => {
 
-loadGuestCount();
+        $('#vendor-guest-count').textContent = '--';
 
-loadData().catch(error => {
+        message($('#vendor-guest-message'), '');
+    }
+);
 
-    message(
-        budgetWarning,
-        'Could not load data: ' + error.message,
-        'error'
-    );
-});
+// Vendor Guest Count
+
+$('#vendor-refresh-guests').addEventListener(
+    'click',
+    async () => {
+
+        if (busy) return;
+
+        const weddingId = Number(
+            $('#vendor-wedding-select').value
+        );
+
+        if (!weddingId) {
+
+            return message(
+                $('#vendor-guest-message'),
+                'Select a wedding first.',
+                'error'
+            );
+        }
+
+        busy = true;
+
+        const button = $('#vendor-refresh-guests');
+
+        const select = $('#vendor-wedding-select');
+
+        button.disabled = true;
+
+        select.disabled = true;
+
+        $('#vendor-guest-count').textContent = '--';
+
+        message(
+            $('#vendor-guest-message'),
+            'Loading guest count...'
+        );
+
+        try {
+
+            const data =
+                await vendorPortalAPI.getConfirmedGuestCount(
+                    weddingId
+                );
+
+            $('#vendor-guest-count').textContent =
+                data.confirmed_guest_count;
+
+            message(
+                $('#vendor-guest-message'),
+                'Guest count retrieved successfully.',
+                'success'
+            );
+
+        } catch (error) {
+
+            message(
+                $('#vendor-guest-message'),
+                error.message,
+                'error'
+            );
+
+        } finally {
+
+            button.disabled = false;
+
+            select.disabled = false;
+
+            busy = false;
+        }
+    }
+);

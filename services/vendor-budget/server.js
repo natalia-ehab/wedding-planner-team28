@@ -4,19 +4,30 @@ const express = require('express');
 const cors = require('cors');
 const pool = require('./db');
 
+const {
+    authenticate,
+    authorize
+} = require('./middleware/auth');
+
+const {
+    checkWeddingOwnership
+} = require('./middleware/weddingOwnership');
+
 const vendorRoutes = require('./routes/vendorRoutes');
 const budgetRoutes = require('./routes/budgetRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const guestIntegrationRoutes = require('./routes/guestIntegrationRoutes');
+const vendorPortalRoutes = require('./routes/vendorPortalRoutes');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// Health Check
+// Health check
 app.get('/health', async (req, res) => {
     try {
+
         await pool.query('SELECT 1');
 
         res.json({
@@ -26,6 +37,7 @@ app.get('/health', async (req, res) => {
         });
 
     } catch (error) {
+
         res.status(503).json({
             service: 'Vendor and Budget Service',
             status: 'unavailable',
@@ -34,21 +46,32 @@ app.get('/health', async (req, res) => {
     }
 });
 
-// API Routes
+// Vendor-only routes
+app.use('/api/vendor-portal', vendorPortalRoutes);
+
+// Couple-only routes
+app.use(
+    '/api',
+    authenticate,
+    authorize('couple'),
+    checkWeddingOwnership
+);
+
 app.use('/api/vendors', vendorRoutes);
 app.use('/api/budget', budgetRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/guests', guestIntegrationRoutes);
 
-// Route Not Found
+// Not found
 app.use((req, res) => {
     res.status(404).json({
         error: 'Route not found.'
     });
 });
 
-// Error Handling
+// Error handling
 app.use((error, req, res, next) => {
+
     const status = error.status || 500;
 
     if (status >= 500) {
@@ -62,11 +85,15 @@ app.use((error, req, res, next) => {
     });
 });
 
-// Start Local Server
 const PORT = process.env.PORT || 3003;
 
 async function startServer() {
     try {
+
+        if (!process.env.JWT_SECRET) {
+            throw new Error('JWT_SECRET is missing.');
+        }
+
         await pool.query('SELECT 1');
 
         console.log('Neon PostgreSQL connected successfully.');
@@ -78,19 +105,14 @@ async function startServer() {
         });
 
     } catch (error) {
-        console.error(
-            'Database connection failed:',
-            error.message
-        );
 
+        console.error('Server startup failed:', error.message);
         process.exit(1);
     }
 }
 
-// Run only during local development
 if (require.main === module) {
     startServer();
 }
 
-// Export Express app for AWS Lambda
 module.exports = app;
